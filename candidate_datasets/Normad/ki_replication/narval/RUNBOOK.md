@@ -67,10 +67,13 @@ Compute nodes are offline, so this must happen here. Models go in `$SCRATCH` (no
 cd ~/projects/def-enaskt/gandrus/CSC494/candidate_datasets/Normad/ki_replication/narval
 bash fetch_data.sh                          # Ki et al.'s 2,633-item NormAd-ETI file; expect "OK: 2633 items"
 
+tmux new -s models                          # so the ~90GB download survives a dropped connection / closed laptop
+                                            # (detach: Ctrl+b then d;  reattach later: tmux attach -t models)
 module load python/3.11
 python -m venv $SCRATCH/precache_env && source $SCRATCH/precache_env/bin/activate
 pip install --no-index --upgrade pip
 pip install --no-index huggingface_hub
+export HF_HOME=$SCRATCH/hf_cache            # BEFORE login: precache_models.sh looks for the token here
 hf auth login                               # paste your READ token when prompted
 bash precache_models.sh                     # Llama-3-8B, Gemma-2-9B, Gemma-2-27B; resumable if interrupted
 deactivate

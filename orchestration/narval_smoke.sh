@@ -8,7 +8,7 @@ salloc --account=def-enaskt --gres=gpu:1 --cpus-per-task=4 --mem=32G --time=00:5
 # If the wait is long, in another shell:  squeue -u $USER --start
 
 # --- 1. Once on the GPU node (prompt changes narval3 -> ngXXXXX) ------------
-cd ~/projects/def-enaskt/hhpfiona/CSC494
+cd ~/projects/def-enaskt/gandrus/CSC494
 
 module purge
 module load StdEnv/2023 gcc/12.3 rust/1.76.0 python/3.11 arrow/16 cuda/12.2
@@ -34,7 +34,7 @@ python -m orchestration.check_setup      # expect: PASS — setup looks good.
 python -m orchestration.run_generate \
     --model $SLURM_TMPDIR/llama31-8b \
     --queries CulFiT/GlobalCultureQA/eval_set_n100.jsonl \
-    --systems culfit_baseline,agentic_sequential \
+    --systems culfit_baseline \
     --smoke
 # -> prints the answers file path, e.g. runs/answers_<ts>.jsonl
 # Eyeball it: did both systems produce a non-empty "answer"?

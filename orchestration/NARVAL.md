@@ -1,6 +1,13 @@
 # Running on Narval (def-enaskt)
 
-Project lives at `~/projects/def-enaskt/hhpfiona/CSC494`, pulled from GitHub.
+> **Note:** Steps 2 and 3 below were written for Fiona's multi-agent ablation
+> (`run_local.py` / `run_ablation.slurm`), which now lives in
+> `archive/fiona-agents/`. The Narval setup (Step 0), the file check (Step 1) and
+> the general advice still apply. The current jobs are `generate.slurm` and
+> `judge.slurm` (`run_generate.py` then `run_judge.py`), and the Ki et al. replication
+> has its own runbook at `candidate_datasets/Normad/ki_replication/narval/RUNBOOK.md`.
+
+Project lives at `~/projects/def-enaskt/gandrus/CSC494`, pulled from GitHub.
 Allocation is **Opportunistic Use** (low priority, no guaranteed resources),
 so keep jobs modest and expect variable queue times.
 
@@ -22,7 +29,7 @@ Use a **venv in $SCRATCH**, not `pip install --user`. The `--user` site
 errors); a scratch venv sidesteps it and doesn't touch home quota.
 
 ```bash
-cd ~/projects/def-enaskt/hhpfiona/CSC494
+cd ~/projects/def-enaskt/gandrus/CSC494
 module load python/3.11
 
 # One-time login-node venv for downloads/pre-caching (lives in scratch).
@@ -70,7 +77,7 @@ seconds, not a 12h slot.
 ## Step 1 — Verify the drop (no GPU needed, run on login node)
 
 ```bash
-cd ~/projects/def-enaskt/hhpfiona/CSC494
+cd ~/projects/def-enaskt/gandrus/CSC494
 module load python/3.11
 python -m orchestration.check_setup
 ```
@@ -93,8 +100,8 @@ salloc --account=def-enaskt --gres=gpu:1 --cpus-per-task=4 --mem=32G --time=00:4
 squeue -u $USER --start      # estimated start time, if predictable
 squeue -j <jobid> -o "%.12i %.8T %.10M %.10l %.20S %R"   # state + reason
 
-# once on the GPU node (prompt changes e.g. hhpfiona@narval3 -> hhpfiona@ng10104)
-cd ~/projects/def-enaskt/hhpfiona/CSC494
+# once on the GPU node (prompt changes e.g. gandrus@narval3 -> gandrus@ng10104)
+cd ~/projects/def-enaskt/gandrus/CSC494
 
 module purge
 module load StdEnv/2023 gcc/12.3 rust/1.76.0 python/3.11 arrow/16 cuda/12.2
@@ -133,7 +140,7 @@ job via the `ARMS` env var. Records append per-query, so a timeout still leaves
 partial results.
 
 ```bash
-cd ~/projects/def-enaskt/hhpfiona/CSC494 && mkdir -p runs
+cd ~/projects/def-enaskt/gandrus/CSC494 && mkdir -p runs
 
 # If you edited the script on Windows, normalize line endings first:
 dos2unix orchestration/run_ablation.slurm

@@ -20,7 +20,7 @@ once; after that, the four reference docs below are what you'll actually use.
 | **`REPRODUCE.md`** (this file) | First. The end-to-end path. |
 | **`README.md`** | To understand the code in dataflow order (bootstrap → backend → agents → orchestrator → harness). |
 | **`NARVAL.md`** | Before any cluster run. The air-gapped model/SBERT pre-cache, the smoke test, the batch job. This is the operational bible — follow it exactly. |
-| **`GIT_SETUP.md`** | Once, for the laptop → GitHub → Narval sync model. |
+| **`archive/fiona/GIT_SETUP.md`** | Once, for the laptop → GitHub → Narval sync model. |
 | **`PROJECT_HANDOFF.md`** | For the *why*: decisions, rationale, and the full result history as of the handoff date. |
 
 **Golden rule from the project:** verify before you commit compute. Every step

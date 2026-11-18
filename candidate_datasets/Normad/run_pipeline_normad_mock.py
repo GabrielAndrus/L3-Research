@@ -3,6 +3,15 @@
 run_pipeline_normad_mock.py -- Exercise the PluralTree orchestrator end-to-end
 on the normalized NormAd sample (normad_eval_set.jsonl).
 
+NOTE (historical record): this script is only a driver. All of the work is done by
+`build_orchestrator` in orchestration/run_ablation.py, which builds Fiona's
+Agent A / Agent B / orchestrator (agent_a_adapter.py, agent_b_engine.py,
+orchestrator.py). If that multi-agent harness has been moved to
+archive/fiona-agents/, this script will fail on import until those files are
+restored to orchestration/. It is kept in place because NORMAD_REPORT.md Sec 5
+cites it and its saved outputs (normad_mock_run_*), not because it is part of the
+current pipeline.
+
 Default (--mode mock, no flags needed) is a STRUCTURAL / INTEGRATION check, not
 a quality evaluation. It answers "does the pipeline correctly ingest
 NormAd-shaped records and run all three topologies to completion" -- not "how

@@ -11,3 +11,5 @@ venv/
 *.gguf
 run_ablation.txt
 narval_smoke.txt
+.claude/
+*.save

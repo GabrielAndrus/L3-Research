@@ -1,21 +1,16 @@
 """
-Bootstrap for in-place integration under CSC494/.
+Bootstrap for in-place integration under the repo root.
 
-The problem: there are THREE directories named `utils` across the two repos:
-  - CulFiT/utils/                       (Agent B: prompt_utils, llm_utils, json_fields)
-  - Cultural_Commonsense_Knowledge_Graph/src/utils/   (Agent A: llm_query, prompt_templates, response_parser)
-  - Cultural_Commonsense_Knowledge_Graph/utils/       (a COPY of CulFiT's utils)
+Loads the vendored CulFiT files the F1 evaluation needs (`CulFiT/utils/
+prompt_utils.py` and `llm_utils.py`) by explicit filesystem path under unique
+module names, then aliases them as `utils.prompt_utils` / `utils.llm_utils` so
+the upstream CulFiT code runs UNMODIFIED. A bare `utils` is never put on
+sys.path, so there is no risk of resolving to a different `utils` package.
 
-If two of these sit on sys.path at once, `import utils.X` resolves against
-whichever appears first -> silent wrong-module bugs.
+Fiona's Agent A loader (Cultural_Commonsense_Knowledge_Graph) was removed when
+the multi-agent harness was archived under archive/fiona-agents/.
 
-The fix: never rely on a bare `utils` on sys.path. Instead load each file we
-need by its explicit filesystem path under a unique module name, using
-importlib. We also alias the names that the original files import internally
-(e.g. agent_b_critique.py does `from utils.prompt_utils import ...`) so the
-upstream code runs UNMODIFIED.
-
-Nothing in either original repo is edited or copied.
+Nothing in the original CulFiT repo is edited or copied.
 """
 
 from __future__ import annotations
@@ -29,8 +24,6 @@ import types
 _THIS = os.path.dirname(os.path.abspath(__file__))
 CSC494 = os.path.dirname(_THIS)
 CULFIT = os.path.join(CSC494, "CulFiT")
-AGENT_A = os.path.join(CSC494, "Cultural_Commonsense_Knowledge_Graph")
-AGENT_A_SRC = os.path.join(AGENT_A, "src")
 
 
 def _load(module_name: str, file_path: str):
@@ -57,11 +50,11 @@ def _ensure_pkg(name: str):
 
 def install():
     """
-    Make both agents importable without collision. Call once before importing
-    the adapters. Returns a dict of the key loaded modules for convenience.
+    Make the vendored CulFiT modules importable. Call once before importing
+    anything that needs the CulFiT prompts. Returns a dict of the loaded modules.
     """
-    # --- Agent B (CulFiT) ---------------------------------------------------
-    # agent_b_critique.py does `from utils.prompt_utils import ...` and
+    # --- CulFiT -------------------------------------------------------------
+    # CulFiT code does `from utils.prompt_utils import ...` and
     # `from utils.llm_utils import ...`. We satisfy that by registering a
     # `utils` package whose submodules point at CulFiT's files specifically.
     culfit_prompt_utils = _load("culfit_prompt_utils",
@@ -84,31 +77,7 @@ def install():
     if culfit_llm_utils is not None:
         sys.modules["utils.llm_utils"] = culfit_llm_utils
 
-    # --- Agent A (Tonga) ----------------------------------------------------
-    # Tonga's modules import each other as `from utils.llm_query import *`
-    # etc., AND `from config import ...`. Those names are relative to src/.
-    # We load Tonga's files under explicit names, then alias the internal
-    # references so the upstream code runs unmodified.
-    #
-    # config.py needs python-dotenv and is only used for multilingual prompt
-    # selection / API keys -> load lazily so mock mode needs neither.
-    a_config = None
-    try:
-        a_config = _load("agentA_config", os.path.join(AGENT_A_SRC, "config.py"))
-    except ImportError as e:
-        import logging
-        logging.getLogger(__name__).info(
-            "agentA_config not loaded (%s); fine for mock mode.", e)
-
-    a_prompt_templates = _load("agentA_prompt_templates",
-                               os.path.join(AGENT_A_SRC, "utils", "prompt_templates.py"))
-    a_response_parser = _load("agentA_response_parser",
-                              os.path.join(AGENT_A_SRC, "utils", "response_parser.py"))
-
     return {
         "culfit_prompt_utils": culfit_prompt_utils,
         "culfit_llm_utils": culfit_llm_utils,
-        "agentA_config": a_config,
-        "agentA_prompt_templates": a_prompt_templates,
-        "agentA_response_parser": a_response_parser,
     }

@@ -35,9 +35,9 @@ Usage
     python build_eval_set.py --csv GlobalCultureQA.csv --n 100 --seed 13 \
         --out eval_set_n100.jsonl
 
-    python -m orchestration.run_local \
+    python -m orchestration.run_generate \
         --model meta-llama/Llama-3.1-8B-Instruct \
-        --queries eval_set_n100.jsonl --max_loops 3
+        --queries eval_set_n100.jsonl --systems culfit_baseline
 
 Determinism: seeded, stratified across cultural_group so the 100 aren't all one
 region. Writes UTF-8 explicitly (GlobalCultureQA is multilingual / non-ASCII).

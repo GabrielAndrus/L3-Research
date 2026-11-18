@@ -161,6 +161,32 @@ class LocalBackend(LLMBackend):
         return out or ""
 
 
+def load_hf_model(model_name: str, dtype: str = "bfloat16"):
+    """Load tokenizer + causal LM onto available GPU(s). Used by run_generate.py."""
+    import torch
+    from transformers import AutoTokenizer, AutoModelForCausalLM
+
+    torch_dtype = getattr(torch, dtype, torch.bfloat16)
+    logger.info("Loading tokenizer: %s", model_name)
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+    logger.info("Loading model: %s (dtype=%s, device_map=auto)", model_name, dtype)
+    # Newer transformers renamed `torch_dtype` -> `dtype`; try the new name first
+    # and fall back to the old one so this works on both.
+    try:
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name, device_map="auto", dtype=torch_dtype
+        )
+    except TypeError:
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name, device_map="auto", torch_dtype=torch_dtype
+        )
+    model.eval()
+    logger.info("Model loaded. Device map ready.")
+    return model, tokenizer
+
+
 def make_backend(mode: str, **kwargs) -> LLMBackend:
     """Factory. `mode` in {"mock","api","gemini","local"}."""
     mode = (mode or "mock").lower()

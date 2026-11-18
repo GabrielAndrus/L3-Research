@@ -16,14 +16,16 @@ Why two passes (see run_judge.py for pass 2):
 
 Systems (each produces an answer per item; all scored identically in pass 2):
   - culfit_baseline : base model answers the QA one-shot (CulFiT-at-inference).
-  - agentic_<topo>  : orchestrator produces paths+critique as augmentation, then
-                      the model writes the task answer on top.
+
+(Fiona's `agentic_<topo>` systems were removed when the multi-agent harness was
+archived under archive/fiona-agents/. New systems, e.g. a KG-augmented arm, go in
+build_providers() as another entry that returns a `provider(item) -> answer`.)
 
 Usage (inside the SLURM job):
     python -m orchestration.run_generate \
         --model meta-llama/Llama-3.1-8B-Instruct \
         --queries CulFiT/GlobalCultureQA/eval_set_n100.jsonl \
-        --systems culfit_baseline,agentic_sequential
+        --systems culfit_baseline
 
 Output:
     runs/answers_<ts>.jsonl   (one record per (system, item), judge-agnostic)
@@ -44,11 +46,8 @@ _os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 from orchestration import bootstrap
 bootstrap.install()
 
-from orchestration.llm_backend import LocalBackend
-from orchestration.run_local import load_hf_model
-from orchestration.task_eval import (
-    TaskEvaluator, culfit_baseline_provider, agentic_answer_provider,
-)
+from orchestration.llm_backend import LocalBackend, load_hf_model
+from orchestration.task_eval import TaskEvaluator, culfit_baseline_provider
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger("run_generate")
@@ -83,44 +82,17 @@ def load_items(path, smoke, limit):
     return items
 
 
-def build_orchestrator_factory(backend, max_loops):
-    from orchestration.agent_a_adapter import AgentA
-    from orchestration.agent_b_engine import AgentBCritiqueEngine
-    from orchestration.orchestrator import CulturalAgentOrchestrator
-
-    def build(item):
-        gt = item["ground_truth"]
-        agent_a = AgentA(backend, location=gt.get("location", "Unknown"),
-                         sub_topic=gt.get("sub_topic", "Unknown"),
-                         reconstruct_graph=True, use_sbert=True)
-        agent_b = AgentBCritiqueEngine(backend)
-        return CulturalAgentOrchestrator(
-            agent_a, agent_b, arbiter_backend=backend,
-            use_context=True, context_mode="template")
-    return build
-
-
-def build_providers(systems, backend, evaluator, max_loops):
+def build_providers(systems, evaluator):
     providers = {}
-    orch_factory = build_orchestrator_factory(backend, max_loops)
     for s in systems:
         if s == "culfit_baseline":
             providers[s] = culfit_baseline_provider(evaluator)
         elif s.startswith("agentic_"):
-            rest = s.split("agentic_", 1)[1] or "sequential"
-            # optional "_terse" / "_verbose" suffix selects the answer style;
-            # default is verbose (the original prompt).
-            style = "verbose"
-            for suf in ("_terse", "_verbose"):
-                if rest.endswith(suf):
-                    style = suf[1:]
-                    rest = rest[: -len(suf)]
-                    break
-            topo = rest or "sequential"
-            providers[s] = agentic_answer_provider(
-                orch_factory, evaluator, topology=topo, style=style)
+            raise SystemExit(
+                f"system '{s}' was removed: the multi-agent harness is archived "
+                f"under archive/fiona-agents/. Available systems: culfit_baseline")
         else:
-            raise SystemExit(f"unknown system '{s}'")
+            raise SystemExit(f"unknown system '{s}' (available: culfit_baseline)")
     return providers
 
 
@@ -143,14 +115,14 @@ def _load_done(resume_path):
     return done
 
 
-def run(model_name, dtype, queries, systems, max_loops, smoke, limit, resume=None):
+def run(model_name, dtype, queries, systems, smoke, limit, resume=None):
     items = load_items(queries, smoke, limit)
     model, tokenizer = load_hf_model(model_name, dtype)
     backend = LocalBackend(model_obj=model, tokenizer_obj=tokenizer, model_name=model_name)
     # The evaluator here is used ONLY for its answer-generation helpers; no
     # judging is invoked in this pass.
     evaluator = TaskEvaluator(backend)
-    providers = build_providers(systems, backend, evaluator, max_loops)
+    providers = build_providers(systems, evaluator)
 
     # Resume appends to the SAME file so one file holds the whole run; a fresh
     # run opens a new timestamped file.
@@ -207,8 +179,7 @@ if __name__ == "__main__":
                    help="generator model (small; runs the answer step)")
     p.add_argument("--dtype", default="bfloat16")
     p.add_argument("--queries", default=None)
-    p.add_argument("--systems", default="culfit_baseline,agentic_sequential")
-    p.add_argument("--max_loops", type=int, default=3)
+    p.add_argument("--systems", default="culfit_baseline")
     p.add_argument("--smoke", action="store_true")
     p.add_argument("--limit", type=int, default=None)
     p.add_argument("--resume", default=None,
@@ -217,4 +188,4 @@ if __name__ == "__main__":
     args = p.parse_args()
     systems = [s.strip() for s in args.systems.split(",") if s.strip()]
     run(args.model, args.dtype, args.queries, systems,
-        args.max_loops, args.smoke, args.limit, resume=args.resume)
+        args.smoke, args.limit, resume=args.resume)
